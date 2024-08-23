@@ -3,6 +3,7 @@ package txfuzz
 import (
 	"context"
 	"crypto/sha256"
+	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
@@ -62,7 +63,7 @@ func initDefaultTxConf(rpc *rpc.Client, f *filler.Filler, sender common.Address,
 		if gasPrice == nil {
 			gasPrice, err = client.SuggestGasPrice(context.Background())
 			if err != nil {
-				log.Warn("Error suggesting gas price: %v", err)
+				fmt.Printf("Error suggesting gas price: %v", err)
 				gasPrice = big.NewInt(1)
 			}
 		}
@@ -117,6 +118,55 @@ func RandomValidTx(rpc *rpc.Client, f *filler.Filler, sender common.Address, non
 		index = rand.Intn(len(noAlStrategies))
 		return noAlStrategies[index](conf)
 	}
+}
+
+// RandomInvalidTx creates a random invalid transaction.
+// This function intentionally creates transactions that are malformed or violate protocol rules.
+func RandomInvalidTx(rpc *rpc.Client, f *filler.Filler, sender common.Address, nonce uint64, gasPrice, chainID *big.Int) (*types.Transaction, error) {
+	conf := initDefaultTxConf(rpc, f, sender, nonce, gasPrice, chainID)
+
+	// List of strategies to create invalid transactions
+	invalidStrategies := []func() (*types.Transaction, error){
+		func() (*types.Transaction, error) {
+			// Invalid nonce (extremely high)
+			return types.NewTransaction(math.MaxUint64, *conf.to, conf.value, conf.gasLimit, conf.gasPrice, conf.code), nil
+		},
+		func() (*types.Transaction, error) {
+			// Negative value
+			negativeValue := new(big.Int).Neg(conf.value)
+			return types.NewTransaction(conf.nonce, *conf.to, negativeValue, conf.gasLimit, conf.gasPrice, conf.code), nil
+		},
+		func() (*types.Transaction, error) {
+			// Gas limit lower than intrinsic gas
+			return types.NewTransaction(conf.nonce, *conf.to, conf.value, 21000-1, conf.gasPrice, conf.code), nil
+		},
+		func() (*types.Transaction, error) {
+			// Gas price of 0
+			return types.NewTransaction(conf.nonce, *conf.to, conf.value, conf.gasLimit, big.NewInt(0), conf.code), nil
+		},
+		func() (*types.Transaction, error) {
+			// Invalid signature (we'll return an unsigned transaction)
+			return types.NewTransaction(conf.nonce, *conf.to, conf.value, conf.gasLimit, conf.gasPrice, conf.code), nil
+		},
+		func() (*types.Transaction, error) {
+			// Invalid chain ID for EIP-155
+			invalidChainID := new(big.Int).Add(conf.chainID, big.NewInt(1))
+			return types.NewTx(&types.DynamicFeeTx{
+				ChainID:   invalidChainID,
+				Nonce:     conf.nonce,
+				To:        conf.to,
+				Value:     conf.value,
+				Gas:       conf.gasLimit,
+				GasFeeCap: conf.gasPrice,
+				GasTipCap: conf.gasPrice,
+				Data:      conf.code,
+			}), nil
+		},
+	}
+
+	// Randomly select an invalid strategy
+	strategy := invalidStrategies[rand.Intn(len(invalidStrategies))]
+	return strategy()
 }
 
 func RandomBlobTx(rpc *rpc.Client, f *filler.Filler, sender common.Address, nonce uint64, gasPrice, chainID *big.Int, al bool) (*types.Transaction, error) {

@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/ethereum/go-ethereum/log"
 )
 
 const TX_TIMEOUT = 5 * time.Minute
@@ -23,7 +22,7 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 	sender := crypto.PubkeyToAddress(key.PublicKey)
 	chainID, err := backend.ChainID(context.Background())
 	if err != nil {
-		log.Warn("Could not get chainID, using default")
+		fmt.Print("Could not get chainID, using default")
 		chainID = big.NewInt(0x01000666)
 	}
 
@@ -33,9 +32,10 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 		if err != nil {
 			return err
 		}
-		tx, err := txfuzz.RandomValidTx(config.backend, f, sender, nonce, nil, nil, config.accessList)
+		fmt.Print("Sending tx from", sender, "with nonce", nonce)
+		tx, err := txfuzz.RandomInvalidTx(config.backend, f, sender, nonce, nil, nil)
 		if err != nil {
-			log.Warn("Could not create valid tx: %v", nonce)
+			fmt.Printf("Could not create valid tx: %v", nonce)
 			return err
 		}
 		signedTx, err := types.SignTx(tx, types.NewCancunSigner(chainID), key)
@@ -43,7 +43,7 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 			return err
 		}
 		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
-			log.Warn("Could not submit transaction: %v", err)
+			fmt.Printf("Could not submit transaction: %v", err)
 			return err
 		}
 		lastTx = signedTx
