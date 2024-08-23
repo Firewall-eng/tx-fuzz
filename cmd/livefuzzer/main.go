@@ -9,7 +9,6 @@ import (
 	"github.com/MariusVanDerWijden/tx-fuzz/flags"
 	"github.com/MariusVanDerWijden/tx-fuzz/spammer"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ipfs/go-log/v2"
 	"github.com/urfave/cli/v2"
 )
 
@@ -91,11 +90,11 @@ func runAirdrop(c *cli.Context) error {
 
 func spam(config *spammer.Config, spamFn spammer.Spam, airdropValue *big.Int) error {
 	// Make sure the accounts are unstuck before sending any transactions
-	log.SetLogLevel()
+
 	spammer.Unstuck(config)
 	for {
 		if err := spammer.Airdrop(config, airdropValue); err != nil {
-			fmt.Printf("error in airdrop function, exiting the for loop")
+			fmt.Printf("error in airdrop function, exiting the for loop\n")
 			return err
 		}
 		spammer.SpamTransactions(config, spamFn)
