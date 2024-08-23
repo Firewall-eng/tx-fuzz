@@ -29,6 +29,20 @@ lldb ./livefuzzer
 run spam
 ```
 
+
+To run the special flags to generate invalid transactions, use the `singleSpam` command and optionally add these flags
+`--invalid-gas`
+`--invalid-nonce`
+`--invalid-negative-value`
+`--invalid-gas-price-zero`
+`--invalid-signature`
+`invalid-chain-id`
+example:
+```
+./livefuzzer singleSpam --invalid-gas --invalid-nonce
+```
+
+
 Tx-fuzz allows for an optional seed parameter to get reproducible fuzz transactions
 
 ## Advanced usage
