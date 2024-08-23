@@ -29,6 +29,13 @@ var spamCommand = &cli.Command{
 	Flags:  flags.SpamFlags,
 }
 
+var singleSpamCommand = &cli.Command{
+	Name:   "singleSpam",
+	Usage:  "Send single group of spam transaction",
+	Action: runSingleSpam,
+	Flags:  flags.SpamFlags,
+}
+
 var blobSpamCommand = &cli.Command{
 	Name:   "blobs",
 	Usage:  "Send blob spam transactions",
@@ -63,6 +70,7 @@ func initApp() *cli.App {
 		blobSpamCommand,
 		createCommand,
 		unstuckCommand,
+		singleSpamCommand,
 	}
 	return app
 }
@@ -101,6 +109,58 @@ func spam(config *spammer.Config, spamFn spammer.Spam, airdropValue *big.Int) er
 		time.Sleep(time.Duration(config.SlotTime) * time.Second)
 	}
 }
+func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
+	// Make sure the accounts are unstuck before sending any transactions
+	spammer.Unstuck(config)
+
+	// funding accounts
+	if err := spammer.Airdrop(config, airdropValue); err != nil {
+		fmt.Printf("error in airdrop function, exiting the for loop\n")
+		return err
+	}
+
+	// Check for specific invalid transaction flags
+	if config.InvalidGas {
+		if err := spammer.InvalidGasTx(config, airdropValue); err != nil {
+			fmt.Printf("Error sending invalid gas transactions: %v\n", err)
+			return err
+		}
+	} else if config.InvalidNonce {
+		if err := spammer.InvalidNonceTx(config, airdropValue); err != nil {
+			fmt.Printf("Error sending invalid nonce transactions: %v\n", err)
+			return err
+		}
+	} else if config.InvalidNegativeValue {
+		if err := spammer.InvalidNegativeValueTx(config, new(big.Int).Neg(airdropValue)); err != nil {
+			fmt.Printf("Error sending invalid negative value transactions: %v\n", err)
+			return err
+		}
+	} else if config.InvalidGasPriceZero {
+		if err := spammer.InvalidGasPriceZeroTx(config, airdropValue); err != nil {
+			fmt.Printf("Error sending invalid gas price zero transactions: %v\n", err)
+			return err
+		}
+	} else if config.InvalidSignature {
+		if err := spammer.InvalidSignatureTx(config, airdropValue); err != nil {
+			fmt.Printf("Error sending invalid signature transactions: %v\n", err)
+			return err
+		}
+	} else if config.InvalidChainId {
+		if err := spammer.InvalidChainIdTx(config, airdropValue); err != nil {
+			fmt.Printf("Error sending invalid chain ID transactions: %v\n", err)
+			return err
+		}
+	} else {
+		// Send basic airdrop
+		if err := spammer.Airdrop(config, airdropValue); err != nil {
+			fmt.Printf("Error sending airdrop transactions: %v\n", err)
+			return err
+		}
+	}
+
+	time.Sleep(time.Duration(config.SlotTime) * time.Second)
+	return nil
+}
 
 func runBasicSpam(c *cli.Context) error {
 	config, err := spammer.NewConfigFromContext(c)
@@ -109,6 +169,15 @@ func runBasicSpam(c *cli.Context) error {
 	}
 	airdropValue := new(big.Int).Mul(big.NewInt(int64((1+config.N)*1000000)), big.NewInt(params.GWei))
 	return spam(config, spammer.SendBasicTransactions, airdropValue)
+}
+
+func runSingleSpam(c *cli.Context) error {
+	config, err := spammer.NewConfigFromContext(c)
+	if err != nil {
+		return err
+	}
+	airdropValue := new(big.Int).Mul(big.NewInt(int64((1+config.N)*1000000)), big.NewInt(params.GWei))
+	return singleSpam(config, airdropValue)
 }
 
 func runBlobSpam(c *cli.Context) error {
