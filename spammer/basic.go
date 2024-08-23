@@ -32,10 +32,10 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 		if err != nil {
 			return err
 		}
-		fmt.Print("Sending tx from", sender, "with nonce", nonce)
-		tx, err := txfuzz.RandomInvalidTx(config.backend, f, sender, nonce, nil, nil)
+		fmt.Print("Sending tx from ", sender, "\n")
+		tx, err := txfuzz.InvalidNonceTx(config.backend, f, sender, nonce, nil, nil, config.accessList)
 		if err != nil {
-			fmt.Printf("Could not create valid tx: %v", nonce)
+			fmt.Printf("Could not create valid tx\n")
 			return err
 		}
 		signedTx, err := types.SignTx(tx, types.NewCancunSigner(chainID), key)
@@ -43,7 +43,7 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 			return err
 		}
 		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
-			fmt.Printf("Could not submit transaction: %v", err)
+			fmt.Printf("Could not submit transaction: %v\n", err)
 			return err
 		}
 		lastTx = signedTx

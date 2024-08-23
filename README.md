@@ -22,6 +22,12 @@ Run livefuzzer.
 ```
 ./livefuzzer spam
 ```
+if the above command fails, try to run it in debug mode:
+
+```
+lldb ./livefuzzer
+run spam
+```
 
 Tx-fuzz allows for an optional seed parameter to get reproducible fuzz transactions
 

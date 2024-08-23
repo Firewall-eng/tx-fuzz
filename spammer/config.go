@@ -32,6 +32,13 @@ type Config struct {
 
 	seed int64            // seed used for generating randomness
 	mut  *mutator.Mutator // Mutator based on the seed
+
+	InvalidNonce         bool
+	InvalidGasPriceZero  bool
+	InvalidSignature     bool
+	InvalidChainId       bool
+	InvalidNegativeValue bool
+	InvalidGas           bool
 }
 
 func NewDefaultConfig(rpcAddr string, N uint64, accessList bool, rng *rand.Rand) (*Config, error) {
@@ -134,6 +141,13 @@ func NewConfigFromContext(c *cli.Context) (*Config, error) {
 		corpus:     corpus,
 		mut:        mut,
 		SlotTime:   slotTime,
+
+		InvalidNonce:         c.Bool(flags.InvalidNonceFlag.Name),
+		InvalidGasPriceZero:  c.Bool(flags.InvalidGasPriceZeroFlag.Name),
+		InvalidSignature:     c.Bool(flags.InvalidSignatureFlag.Name),
+		InvalidChainId:       c.Bool(flags.InvalidChainIdFlag.Name),
+		InvalidNegativeValue: c.Bool(flags.InvalidNegativeValueFlag.Name),
+		InvalidGas:           c.Bool(flags.InvalidGasFlag.Name),
 	}, nil
 }
 

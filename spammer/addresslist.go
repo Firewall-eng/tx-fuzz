@@ -188,5 +188,297 @@ func Airdrop(config *Config, value *big.Int) error {
 	if _, err := bind.WaitMined(context.Background(), backend, tx); err != nil {
 		return err
 	}
+	fmt.Printf("Airdropped %d accounts\n", len(config.keys))
+	return nil
+}
+
+// each of the following functions has been called after launching the devnet
+// otherwise other kind of errors are returned (e.g. error getting pending nonce; could not airdrop: nonce has max value,
+// when running any of the functions after the InvalidNonce)
+
+func InvalidGasTx(config *Config, value *big.Int) error {
+	backend := ethclient.NewClient(config.backend)
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Airdrop faucet is at %x\n", sender)
+	var tx *types.Transaction
+	chainid, err := backend.ChainID(context.Background())
+	if err != nil {
+		fmt.Printf("error getting chain ID; could not airdrop: %v\n", err)
+		return err
+	}
+	// send config.keys transactions
+	for i, addr := range config.keys {
+		fmt.Printf("Sending transaction %d/%d\n", i+1, len(config.keys))
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not airdrop: %v\n", err)
+			return err
+		}
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+		tx2 := types.NewTransaction(nonce, to, value, 0, gp, nil)
+		signedTx, _ := types.SignTx(tx2, types.LatestSignerForChainID(chainid), config.faucet)
+		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
+			fmt.Printf("tx was not validated: %v\n", err)
+		}
+		tx = signedTx
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Wait for the last transaction to be mined
+	fmt.Printf("Waiting for %d transactions to be mined\n", len(config.keys))
+	if _, err := bind.WaitMined(context.Background(), backend, tx); err != nil {
+		return err
+	}
+	fmt.Printf("Sent gas too low txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
+/*
+error sending transaction: replacement transaction underpriced
+then if you retry, you get:
+error getting pending nonce; could not airdrop: nonce has max value
+*/
+
+func InvalidNonceTx(config *Config, value *big.Int) error {
+	backend := ethclient.NewClient(config.backend)
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Airdrop faucet is at %x\n", sender)
+	var tx *types.Transaction
+	chainid, err := backend.ChainID(context.Background())
+	if err != nil {
+		fmt.Printf("error getting chain ID; could not airdrop: %v\n", err)
+		return err
+	}
+	for _, addr := range config.keys {
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+
+		gas, err := backend.EstimateGas(context.Background(), ethereum.CallMsg{
+			From:     crypto.PubkeyToAddress(config.faucet.PublicKey),
+			To:       &to,
+			Gas:      math.MaxInt64,
+			GasPrice: gp,
+			Value:    value,
+			Data:     nil,
+		})
+		if err != nil {
+			log.Error("error estimating gas: %v", err)
+			return err
+		}
+
+		tx2 := types.NewTransaction(math.MaxUint64, to, value, gas, gp, nil)
+		signedTx, _ := types.SignTx(tx2, types.LatestSignerForChainID(chainid), config.faucet)
+		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
+			fmt.Printf("tx was not validated: %v\n", err)
+		}
+		tx = signedTx
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Wait for the last transaction to be mined
+	fmt.Printf("Waiting for %d transactions to be mined\n", len(config.keys))
+	if _, err := bind.WaitMined(context.Background(), backend, tx); err != nil {
+		return err
+	}
+	fmt.Printf("Sent nonce too low txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
+/*
+Error!!!:  rlp: cannot encode negative big.Int
+error sending transaction; could not airdrop: rlp: cannot encode negative big.Int
+Process 3938 exited with status = 0 (0x00000000)
+*/
+func InvalidNegativeValueTx(config *Config, value *big.Int) error {
+	backend := ethclient.NewClient(config.backend)
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Airdrop faucet is at %x\n", sender)
+	var tx *types.Transaction
+	chainid, err := backend.ChainID(context.Background())
+	if err != nil {
+		fmt.Printf("error getting chain ID; could not airdrop: %v\n", err)
+		return err
+	}
+	for _, addr := range config.keys {
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not airdrop: %v\n", err)
+			return err
+		}
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+		gas, err := backend.EstimateGas(context.Background(), ethereum.CallMsg{
+			From:     crypto.PubkeyToAddress(config.faucet.PublicKey),
+			To:       &to,
+			Gas:      math.MaxInt64,
+			GasPrice: gp,
+			Value:    value,
+			Data:     nil,
+		})
+		if err != nil {
+			log.Error("error estimating gas: %v", err)
+			return err
+		}
+		negativeValue := new(big.Int).Neg(value)
+		tx2 := types.NewTransaction(nonce, to, negativeValue, gas, gp, nil)
+		signedTx, _ := types.SignTx(tx2, types.LatestSignerForChainID(chainid), config.faucet)
+		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
+			fmt.Printf("tx was not validated: %v\n", err)
+		}
+		tx = signedTx
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Wait for the last transaction to be mined
+	fmt.Printf("Waiting for %d transactions to be mined\n", len(config.keys))
+	if _, err := bind.WaitMined(context.Background(), backend, tx); err != nil {
+		return err
+	}
+	fmt.Printf("Sent Invalid Negative Value txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
+/*
+error during backend.SendTransaction! error: transaction underpriced
+Process 5425 exited with status = 0 (0x00000000)
+*/
+func InvalidGasPriceZeroTx(config *Config, value *big.Int) error {
+	backend := ethclient.NewClient(config.backend)
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Airdrop faucet is at %x\n", sender)
+	var tx *types.Transaction
+	chainid, err := backend.ChainID(context.Background())
+	if err != nil {
+		fmt.Printf("error getting chain ID; could not airdrop: %v\n", err)
+		return err
+	}
+	for _, addr := range config.keys {
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not airdrop: %v\n", err)
+			return err
+		}
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+		gas, err := backend.EstimateGas(context.Background(), ethereum.CallMsg{
+			From:     crypto.PubkeyToAddress(config.faucet.PublicKey),
+			To:       &to,
+			Gas:      math.MaxInt64,
+			GasPrice: gp,
+			Value:    value,
+			Data:     nil,
+		})
+		if err != nil {
+			log.Error("error estimating gas: %v", err)
+			return err
+		}
+		gp = big.NewInt(0)
+		tx2 := types.NewTransaction(nonce, to, value, gas, gp, nil)
+		signedTx, _ := types.SignTx(tx2, types.LatestSignerForChainID(chainid), config.faucet)
+		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
+			fmt.Printf("tx was not validated: %v\n", err)
+		}
+		tx = signedTx
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Wait for the last transaction to be mined
+	fmt.Printf("Waiting for %d transactions to be mined\n", len(config.keys))
+	if _, err := bind.WaitMined(context.Background(), backend, tx); err != nil {
+		return err
+	}
+	fmt.Printf("Sent Invalid Gas Price Zero txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
+/*
+error during backend.SendTransaction! error: invalid transaction signature
+Process 9271 exited with status = 0 (0x00000000)
+*/
+func InvalidSignatureTx(config *Config, value *big.Int) error {
+	backend := ethclient.NewClient(config.backend)
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Airdrop faucet is at %x\n", sender)
+	var tx *types.Transaction
+
+	for _, addr := range config.keys {
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not airdrop: %v\n", err)
+			return err
+		}
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+		gas, err := backend.EstimateGas(context.Background(), ethereum.CallMsg{
+			From:     crypto.PubkeyToAddress(config.faucet.PublicKey),
+			To:       &to,
+			Gas:      math.MaxInt64,
+			GasPrice: gp,
+			Value:    value,
+			Data:     nil,
+		})
+		if err != nil {
+			log.Error("error estimating gas: %v", err)
+			return err
+		}
+		unsignedTx2 := types.NewTransaction(nonce, to, value, gas, gp, nil)
+
+		if err := backend.SendTransaction(context.Background(), unsignedTx2); err != nil {
+			fmt.Printf("tx was not validated: %v\n", err)
+		}
+		tx = unsignedTx2
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Wait for the last transaction to be mined
+	fmt.Printf("Waiting for %d transactions to be mined\n", len(config.keys))
+	if _, err := bind.WaitMined(context.Background(), backend, tx); err != nil {
+		return err
+	}
+	fmt.Printf("Sent Invalid Unsigned txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
+/*
+error during backend.SendTransaction! error: invalid chain ID
+Process 10205 exited with status = 0 (0x00000000)
+*/
+func InvalidChainIdTx(config *Config, value *big.Int) error {
+	backend := ethclient.NewClient(config.backend)
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Airdrop faucet is at %x\n", sender)
+	var tx *types.Transaction
+	for _, addr := range config.keys {
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not airdrop: %v\n", err)
+			return err
+		}
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+		gas, err := backend.EstimateGas(context.Background(), ethereum.CallMsg{
+			From:     crypto.PubkeyToAddress(config.faucet.PublicKey),
+			To:       &to,
+			Gas:      math.MaxInt64,
+			GasPrice: gp,
+			Value:    value,
+			Data:     nil,
+		})
+		if err != nil {
+			log.Error("error estimating gas: %v", err)
+			return err
+		}
+
+		tx2 := types.NewTransaction(nonce, to, value, gas, gp, nil)
+		chainid := big.NewInt(1234567890)
+		signedTx, _ := types.SignTx(tx2, types.LatestSignerForChainID(chainid), config.faucet)
+		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
+			fmt.Printf("tx was not validated: %v\n", err)
+		}
+		tx = tx2
+		time.Sleep(10 * time.Millisecond)
+	}
+	// Wait for the last transaction to be mined
+	fmt.Printf("Waiting for %d transactions to be mined\n", len(config.keys))
+	if _, err := bind.WaitMined(context.Background(), backend, tx); err != nil {
+		return err
+	}
+	fmt.Printf("Sent Invalid Chain txs to %d accounts\n", len(config.keys))
 	return nil
 }

@@ -56,6 +56,36 @@ var (
 		Value: 12,
 	}
 
+	InvalidGasFlag = &cli.BoolFlag{
+		Name:  "invalid-gas",
+		Usage: "Send transactions with invalid gas",
+	}
+
+	InvalidNonceFlag = &cli.BoolFlag{
+		Name:  "invalid-nonce",
+		Usage: "Send transactions with invalid nonce",
+	}
+
+	InvalidNegativeValueFlag = &cli.BoolFlag{
+		Name:  "invalid-negative-value",
+		Usage: "Send transactions with invalid negative value",
+	}
+
+	InvalidGasPriceZeroFlag = &cli.BoolFlag{
+		Name:  "invalid-gas-price-zero",
+		Usage: "Send transactions with invalid zero gas price",
+	}
+
+	InvalidSignatureFlag = &cli.BoolFlag{
+		Name:  "invalid-signature",
+		Usage: "Send transactions with invalid signature",
+	}
+
+	InvalidChainIdFlag = &cli.BoolFlag{
+		Name:  "invalid-chain-id",
+		Usage: "Send transactions with invalid chain ID",
+	}
+
 	SpamFlags = []cli.Flag{
 		SkFlag,
 		SeedFlag,
@@ -66,5 +96,12 @@ var (
 		CountFlag,
 		GasLimitFlag,
 		SlotTimeFlag,
+
+		InvalidGasFlag,
+		InvalidNonceFlag,
+		InvalidNegativeValueFlag,
+		InvalidGasPriceZeroFlag,
+		InvalidSignatureFlag,
+		InvalidChainIdFlag,
 	}
 )
