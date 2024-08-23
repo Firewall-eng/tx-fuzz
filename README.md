@@ -29,14 +29,14 @@ lldb ./livefuzzer
 run spam
 ```
 
-
-To run the special flags to generate invalid transactions, use the `singleSpam` command and optionally add these flags
+To run the special flags to generate invalid transactions, use the `singleSpam` command that will send 100 transactions, and optionally add these flags
 `--invalid-gas`
 `--invalid-nonce`
 `--invalid-negative-value`
 `--invalid-gas-price-zero`
 `--invalid-signature`
 `invalid-chain-id`
+
 example:
 ```
 ./livefuzzer singleSpam --invalid-gas --invalid-nonce
