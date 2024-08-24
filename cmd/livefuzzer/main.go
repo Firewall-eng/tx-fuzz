@@ -121,37 +121,48 @@ func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
 
 	// Check for specific invalid transaction flags
 	if config.InvalidGas {
+		// works fine, sends invalid gas transactions to sequencer and receives a validation error
 		if err := spammer.InvalidGasTx(config, airdropValue); err != nil {
 			fmt.Printf("Error sending invalid gas transactions: %v\n", err)
 			return err
 		}
-	} else if config.InvalidNonce {
+	}
+	if config.InvalidNonce {
 		if err := spammer.InvalidNonceTx(config, airdropValue); err != nil {
 			fmt.Printf("Error sending invalid nonce transactions: %v\n", err)
 			return err
 		}
-	} else if config.InvalidNegativeValue {
-		if err := spammer.InvalidNegativeValueTx(config, new(big.Int).Neg(airdropValue)); err != nil {
+	}
+	if config.InvalidNegativeValue {
+		// generates a local problem, the marshalBinary function does not encode negative values
+		if err := spammer.InvalidNegativeValueTx(config, airdropValue); err != nil {
 			fmt.Printf("Error sending invalid negative value transactions: %v\n", err)
 			return err
 		}
-	} else if config.InvalidGasPriceZero {
+	}
+	if config.InvalidGasPriceZero {
+		// works fine, sends invalid gas price zero transactions to sequencer and receives a validation error (transaction underpriced)
 		if err := spammer.InvalidGasPriceZeroTx(config, airdropValue); err != nil {
 			fmt.Printf("Error sending invalid gas price zero transactions: %v\n", err)
 			return err
 		}
-	} else if config.InvalidSignature {
+	}
+	if config.InvalidSignature {
+		// works fine, sends invalid signature transactions to sequencer and receives a validation error (invalid signature)
 		if err := spammer.InvalidSignatureTx(config, airdropValue); err != nil {
 			fmt.Printf("Error sending invalid signature transactions: %v\n", err)
 			return err
 		}
-	} else if config.InvalidChainId {
+	}
+	if config.InvalidChainId {
 		if err := spammer.InvalidChainIdTx(config, airdropValue); err != nil {
 			fmt.Printf("Error sending invalid chain ID transactions: %v\n", err)
 			return err
 		}
-	} else {
-		// Send basic airdrop
+	}
+	// Send basic airdrop if no invalid transaction flags are set
+	if !config.InvalidGas && !config.InvalidNonce && !config.InvalidNegativeValue &&
+		!config.InvalidGasPriceZero && !config.InvalidSignature && !config.InvalidChainId {
 		if err := spammer.Airdrop(config, airdropValue); err != nil {
 			fmt.Printf("Error sending airdrop transactions: %v\n", err)
 			return err
