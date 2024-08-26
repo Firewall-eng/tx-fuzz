@@ -36,6 +36,13 @@ var singleSpamCommand = &cli.Command{
 	Flags:  flags.SpamFlags,
 }
 
+var singleBlobCommand = &cli.Command{
+	Name:   "singleBlob",
+	Usage:  "Send single group of blob transaction",
+	Action: runSingleBlob,
+	Flags:  flags.SpamFlags,
+}
+
 var blobSpamCommand = &cli.Command{
 	Name:   "blobs",
 	Usage:  "Send blob spam transactions",
@@ -156,6 +163,15 @@ func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
 	return nil
 }
 
+func singleBlob(config *spammer.Config, airdropValue *big.Int) error {
+	if err := spammer.BlobTx(config, airdropValue); err != nil {
+		fmt.Printf("Error sending invalid blob transactions: %v\n", err)
+		return err
+	}
+	time.Sleep(time.Duration(config.SlotTime) * time.Second)
+	return nil
+}
+
 func runBasicSpam(c *cli.Context) error {
 	config, err := spammer.NewConfigFromContext(c)
 	if err != nil {
@@ -173,6 +189,17 @@ func runSingleSpam(c *cli.Context) error {
 	airdropValue := new(big.Int).Mul(big.NewInt(int64((1+config.N)*1000000)), big.NewInt(params.GWei))
 	return singleSpam(config, airdropValue)
 }
+
+func runSingleBlob(c *cli.Context) error {
+	config, err := spammer.NewConfigFromContext(c)
+	if err != nil {
+		return err
+	}
+	airdropValue := new(big.Int).Mul(big.NewInt(int64((1+config.N)*1000000)), big.NewInt(params.GWei))
+	airdropValue = airdropValue.Mul(airdropValue, big.NewInt(100))
+	return singleBlob(config, airdropValue)
+}
+
 
 func runBlobSpam(c *cli.Context) error {
 	config, err := spammer.NewConfigFromContext(c)
