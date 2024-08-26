@@ -238,9 +238,18 @@ func InvalidNonceTx(config *Config, value *big.Int) error {
 		fmt.Printf("error getting chain ID; could not airdrop: %v\n", err)
 		return err
 	}
-	for i, addr := range config.keys {
+
+	for i := 0; i < 2; i++ {
 		fmt.Printf("Sending transaction %d/%d\n", i+1, len(config.keys))
-		to := crypto.PubkeyToAddress(addr.PublicKey)
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not airdrop: %v\n", err)
+			return err
+		}
+		if i == 1 {
+			nonce = nonce - 1
+		}
+		to := crypto.PubkeyToAddress(config.keys[i].PublicKey)
 		gp, _ := backend.SuggestGasPrice(context.Background())
 
 		gas, err := backend.EstimateGas(context.Background(), ethereum.CallMsg{
@@ -255,14 +264,15 @@ func InvalidNonceTx(config *Config, value *big.Int) error {
 			log.Error("error estimating gas: %v", err)
 			return err
 		}
-		tx2 := types.NewTransaction(math.MaxUint64, to, value, gas, gp, nil)
+		tx2 := types.NewTransaction(nonce, to, value, gas, gp, nil)
 		signedTx, _ := types.SignTx(tx2, types.LatestSignerForChainID(chainid), config.faucet)
 		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
 			fmt.Printf("tx was not validated: %v\n", err)
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(time.Duration(config.SlotTime) * time.Second)
 	}
-	fmt.Printf("Sent nonce too low txs to %d accounts\n", len(config.keys))
+
+	fmt.Printf("Sent max nonce tx\n")
 	return nil
 }
 
