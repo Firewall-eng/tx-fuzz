@@ -153,12 +153,15 @@ func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
 			return err
 		}
 	}
+	// works fine, sends invalid chain id to sequencer and receives a validation error (invalid chain id)
 	if config.InvalidChainId {
 		if err := spammer.InvalidChainIdTx(config, airdropValue); err != nil {
 			fmt.Printf("Error sending invalid chain ID transactions: %v\n", err)
 			return err
 		}
 	}
+	// works fine, sends txs from an unfunded address to sequencer and receives a validation error (insufficient funds for gas * price + value)
+	// usually already in the gas estimation the error is returned, but here we force a fixedGasLimit
 	if config.LackOfFundsTx {
 		if err := spammer.LackOfFundsTx(config, airdropValue); err != nil {
 			fmt.Printf("Error sending lack of fund transactions: %v\n", err)
