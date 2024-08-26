@@ -33,7 +33,7 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 			return err
 		}
 		fmt.Print("Sending tx from ", sender, "\n")
-		tx, err := txfuzz.InvalidNonceTx(config.backend, f, sender, nonce, nil, nil, config.accessList)
+		tx, err := txfuzz.RandomValidTx(config.backend, f, sender, nonce, nil, nil, config.accessList)
 		if err != nil {
 			fmt.Printf("Could not create valid tx\n")
 			return err
