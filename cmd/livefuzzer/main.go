@@ -110,15 +110,6 @@ func spam(config *spammer.Config, spamFn spammer.Spam, airdropValue *big.Int) er
 	}
 }
 func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
-	// Make sure the accounts are unstuck before sending any transactions
-	spammer.Unstuck(config)
-
-	// funding accounts
-	if err := spammer.Airdrop(config, airdropValue); err != nil {
-		fmt.Printf("error in airdrop function, exiting the for loop\n")
-		return err
-	}
-
 	// Check for specific invalid transaction flags
 	if config.InvalidGas {
 		// works fine, sends invalid gas transactions to sequencer and receives a validation error
