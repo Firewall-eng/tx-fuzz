@@ -35,7 +35,9 @@ To run the special flags to generate invalid transactions, use the `singleSpam` 
 `--invalid-negative-value`
 `--invalid-gas-price-zero`
 `--invalid-signature`
-`invalid-chain-id`
+`--invalid-chain-id`
+`--lack-of-funds`
+Instead to run the blob spammer, use the `singleBlob` command. This will generate 100 random blob transactions.
 
 example:
 ```

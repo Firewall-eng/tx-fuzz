@@ -86,6 +86,11 @@ var (
 		Usage: "Send transactions with invalid chain ID",
 	}
 
+	LackOfFundsFlag = &cli.BoolFlag{
+		Name:  "lack-of-funds",
+		Usage: "Send transactions from a sender without funds",
+	}
+
 	SpamFlags = []cli.Flag{
 		SkFlag,
 		SeedFlag,
@@ -103,5 +108,6 @@ var (
 		InvalidGasPriceZeroFlag,
 		InvalidSignatureFlag,
 		InvalidChainIdFlag,
+		LackOfFundsFlag,
 	}
 )

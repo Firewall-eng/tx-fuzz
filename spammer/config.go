@@ -39,6 +39,7 @@ type Config struct {
 	InvalidChainId       bool
 	InvalidNegativeValue bool
 	InvalidGas           bool
+	LackOfFundsTx        bool
 }
 
 func NewDefaultConfig(rpcAddr string, N uint64, accessList bool, rng *rand.Rand) (*Config, error) {
@@ -148,6 +149,7 @@ func NewConfigFromContext(c *cli.Context) (*Config, error) {
 		InvalidChainId:       c.Bool(flags.InvalidChainIdFlag.Name),
 		InvalidNegativeValue: c.Bool(flags.InvalidNegativeValueFlag.Name),
 		InvalidGas:           c.Bool(flags.InvalidGasFlag.Name),
+		LackOfFundsTx:        c.Bool(flags.LackOfFundsFlag.Name),
 	}, nil
 }
 

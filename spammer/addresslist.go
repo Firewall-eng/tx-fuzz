@@ -460,6 +460,41 @@ func InvalidChainIdTx(config *Config, value *big.Int) error {
 	return nil
 }
 
+func LackOfFundsTx(config *Config, value *big.Int) error {
+	fmt.Printf("LackOfFundsTx\n")
+
+	backend := ethclient.NewClient(config.backend)
+
+	sender := crypto.PubkeyToAddress(config.keys[10].PublicKey)
+	fmt.Printf("Airdrop faucet is at %x\n", sender)
+	chainid, err := backend.ChainID(context.Background())
+	if err != nil {
+		fmt.Printf("error getting chain ID; could not airdrop: %v\n", err)
+		return err
+	}
+	for i, addr := range config.keys {
+		fmt.Printf("Sending transaction %d/%d\n", i+1, len(config.keys))
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not airdrop: %v\n", err)
+			return err
+		}
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+		fixedGasLimit := uint64(21000)
+		fmt.Printf("Sending tx with gas: %d\n", fixedGasLimit)
+		tx2 := types.NewTransaction(nonce, to, value, fixedGasLimit, gp, nil)
+		signedTx, _ := types.SignTx(tx2, types.LatestSignerForChainID(chainid), config.keys[10])
+		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
+			fmt.Printf("tx was not validated: %v\n", err)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	fmt.Printf("Sent lack of funds txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
 func BlobTx(config *Config, value *big.Int) error {
 	fmt.Printf("BlobTx\n")
 	backend := ethclient.NewClient(config.backend)
