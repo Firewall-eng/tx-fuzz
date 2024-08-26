@@ -159,6 +159,12 @@ func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
 			return err
 		}
 	}
+	if config.LackOfFundsTx {
+		if err := spammer.LackOfFundsTx(config, airdropValue); err != nil {
+			fmt.Printf("Error sending lack of fund transactions: %v\n", err)
+			return err
+		}
+	}
 
 	time.Sleep(time.Duration(config.SlotTime) * time.Second)
 	return nil
