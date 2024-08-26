@@ -76,14 +76,12 @@ func initDefaultTxConf(rpc *rpc.Client, f *filler.Filler, sender common.Address,
 		}
 		// Try to estimate gas
 		gas, err := client.EstimateGas(context.Background(), ethereum.CallMsg{
-			From:      sender,
-			To:        &to,
-			Gas:       math.MaxUint64,
-			GasPrice:  gasPrice,
-			GasFeeCap: gasPrice,
-			GasTipCap: gasPrice,
-			Value:     value,
-			Data:      code,
+			From:     sender,
+			To:       &to,
+			Gas:      math.MaxUint64,
+			GasPrice: gasPrice,
+			Value:    value,
+			Data:     code,
 		})
 		if err == nil {
 			log.Warn("Error estimating gas: %v", err)
@@ -181,7 +179,7 @@ func emptyAlTx(conf *txConf) (*types.Transaction, error) {
 
 func contractCreation1559(conf *txConf) (*types.Transaction, error) {
 	// 1559 contract creation
-	tip, feecap, err := getCaps(conf.rpc, conf.gasPrice)
+	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +188,7 @@ func contractCreation1559(conf *txConf) (*types.Transaction, error) {
 
 func tx1559(conf *txConf) (*types.Transaction, error) {
 	// 1559 transaction
-	tip, feecap, err := getCaps(conf.rpc, conf.gasPrice)
+	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +222,7 @@ func fullAl1559ContractCreation(conf *txConf) (*types.Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	tip, feecap, err := getCaps(conf.rpc, conf.gasPrice)
+	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
 	if err != nil {
 		return nil, err
 	}
@@ -238,7 +236,7 @@ func fullAl1559Tx(conf *txConf) (*types.Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	tip, feecap, err := getCaps(conf.rpc, conf.gasPrice)
+	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
 	if err != nil {
 		return nil, err
 	}
@@ -247,11 +245,11 @@ func fullAl1559Tx(conf *txConf) (*types.Transaction, error) {
 
 func emptyAlBlobTx(conf *txConf) (*types.Transaction, error) {
 	// 4844 transaction without AL
-	tip, feecap, err := getCaps(conf.rpc, conf.gasPrice)
+	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
 	if err != nil {
 		return nil, err
 	}
-	data, err := randomBlobData()
+	data, err := RandomBlobData()
 	if err != nil {
 		return nil, err
 	}
@@ -265,11 +263,11 @@ func fullAlBlobTx(conf *txConf) (*types.Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	tip, feecap, err := getCaps(conf.rpc, conf.gasPrice)
+	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
 	if err != nil {
 		return nil, err
 	}
-	data, err := randomBlobData()
+	data, err := RandomBlobData()
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +322,7 @@ func New4844Tx(nonce uint64, to *common.Address, gasLimit uint64, chainID, tip, 
 	})
 }
 
-func getCaps(rpc *rpc.Client, defaultGasPrice *big.Int) (*big.Int, *big.Int, error) {
+func GetCaps(rpc *rpc.Client, defaultGasPrice *big.Int) (*big.Int, *big.Int, error) {
 	if rpc == nil {
 		tip := new(big.Int).Mul(big.NewInt(1), big.NewInt(params.GWei))
 		if defaultGasPrice.Cmp(tip) >= 0 {

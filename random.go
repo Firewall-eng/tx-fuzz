@@ -38,7 +38,7 @@ func randomAddress() common.Address {
 	return common.Address{}
 }
 
-func randomBlobData() ([]byte, error) {
+func RandomBlobData() ([]byte, error) {
 	size := mathRand.Intn(maxDataPerTx)
 	data := make([]byte, size)
 	n, err := rand.Read(data)

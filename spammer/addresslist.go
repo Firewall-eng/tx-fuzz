@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/MariusVanDerWijden/FuzzyVM/filler"
+	txfuzz "github.com/MariusVanDerWijden/tx-fuzz"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -455,5 +457,60 @@ func InvalidChainIdTx(config *Config, value *big.Int) error {
 	}
 
 	fmt.Printf("Sent Invalid Chain txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
+func BlobTx(config *Config, value *big.Int) error {
+	fmt.Printf("BlobTx\n")
+	backend := ethclient.NewClient(config.backend)
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Sender is at %x\n", sender)
+	chainID, err := backend.ChainID(context.Background())
+	if err != nil {
+		log.Warn("Could not get chainID, using default")
+		chainID = big.NewInt(0x01000666)
+	}
+
+	// Setup randomness and filler
+	var f *filler.Filler
+	random := make([]byte, 10000)
+	config.mut.FillBytes(&random)
+	config.mut.MutateBytes(&random)
+	f = filler.NewFiller(random)
+	code := txfuzz.RandomCode(f)
+
+	for i, addr := range config.keys {
+		fmt.Printf("Sending transaction %d/%d\n", i+1, len(config.keys))
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not send blob tx: %v\n", err)
+			return err
+		}
+
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+		tip, feecap, err := txfuzz.GetCaps(config.backend, gp)
+		if err != nil {
+			return err
+		}
+		data, err := txfuzz.RandomBlobData()
+		if err != nil {
+			return err
+		}
+
+		tx := txfuzz.New4844Tx(nonce, &to, math.MaxInt64, chainID, tip, feecap, value, code, big.NewInt(1000000), data, make(types.AccessList, 0))
+
+		signedTx, err := types.SignTx(tx, types.NewCancunSigner(chainID), config.faucet)
+		if err != nil {
+			fmt.Printf("error signing tx: %v\n", err)
+			return err
+		}
+		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
+			fmt.Printf("Could not submit transaction: %v\n", err)
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	fmt.Printf("Sent blob txs to %d accounts\n", len(config.keys))
 	return nil
 }
