@@ -151,14 +151,6 @@ func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
 			return err
 		}
 	}
-	// Send basic airdrop if no invalid transaction flags are set
-	if !config.InvalidGas && !config.InvalidNonce && !config.InvalidNegativeValue &&
-		!config.InvalidGasPriceZero && !config.InvalidSignature && !config.InvalidChainId {
-		if err := spammer.Airdrop(config, airdropValue); err != nil {
-			fmt.Printf("Error sending airdrop transactions: %v\n", err)
-			return err
-		}
-	}
 
 	time.Sleep(time.Duration(config.SlotTime) * time.Second)
 	return nil
