@@ -18,7 +18,7 @@ import (
 const TX_TIMEOUT = 5 * time.Minute
 
 func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Filler) error {
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(key.PublicKey)
 	chainID, err := backend.ChainID(context.Background())
 	if err != nil {
@@ -33,7 +33,7 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 			return err
 		}
 		fmt.Print("Sending tx from ", sender, "\n")
-		tx, err := txfuzz.RandomValidTx(config.backend, f, sender, nonce, nil, nil, config.accessList)
+		tx, err := txfuzz.RandomValidTx(config.l2Backend, f, sender, nonce, nil, nil, config.accessList)
 		if err != nil {
 			fmt.Printf("Could not create valid tx\n")
 			return err

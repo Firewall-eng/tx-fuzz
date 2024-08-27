@@ -8,7 +8,9 @@ import (
 
 	"github.com/MariusVanDerWijden/FuzzyVM/filler"
 	txfuzz "github.com/MariusVanDerWijden/tx-fuzz"
+	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -148,7 +150,7 @@ func CreateAddresses(N int) ([]string, []string) {
 
 func Airdrop(config *Config, value *big.Int) error {
 	fmt.Printf("Airdrop\n")
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
 	fmt.Printf("Airdrop faucet is at %x\n", sender)
 	chainid, err := backend.ChainID(context.Background())
@@ -194,7 +196,7 @@ func Airdrop(config *Config, value *big.Int) error {
 
 func InvalidGasTx(config *Config, value *big.Int) error {
 	fmt.Printf("InvalidGasTx\n")
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
 	fmt.Printf("Airdrop faucet is at %x\n", sender)
 	chainid, err := backend.ChainID(context.Background())
@@ -232,7 +234,7 @@ error getting pending nonce; could not airdrop: nonce has max value
 
 func InvalidNonceTx(config *Config, value *big.Int) error {
 	fmt.Printf("InvalidNonceTx\n")
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
 	fmt.Printf("Airdrop faucet is at %x\n", sender)
 	chainid, err := backend.ChainID(context.Background())
@@ -285,7 +287,7 @@ Process 3938 exited with status = 0 (0x00000000)
 */
 func InvalidNegativeValueTx(config *Config, value *big.Int) error {
 	fmt.Printf("InvalidNegativeValueTx\n")
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
 	fmt.Printf("Airdrop faucet is at %x\n", sender)
 	chainid, err := backend.ChainID(context.Background())
@@ -332,7 +334,7 @@ Process 5425 exited with status = 0 (0x00000000)
 */
 func InvalidGasPriceZeroTx(config *Config, value *big.Int) error {
 	fmt.Printf("InvalidGasPriceZeroTx\n")
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
 	fmt.Printf("Airdrop faucet is at %x\n", sender)
 	chainid, err := backend.ChainID(context.Background())
@@ -379,7 +381,7 @@ Process 9271 exited with status = 0 (0x00000000)
 */
 func InvalidSignatureTx(config *Config, value *big.Int) error {
 	fmt.Printf("InvalidSignatureTx\n")
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
 	fmt.Printf("Airdrop faucet is at %x\n", sender)
 
@@ -422,7 +424,7 @@ Process 10205 exited with status = 0 (0x00000000)
 */
 func InvalidChainIdTx(config *Config, value *big.Int) error {
 	fmt.Printf("InvalidChainIdTx\n")
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
 	fmt.Printf("Airdrop faucet is at %x\n", sender)
 	for i, addr := range config.keys {
@@ -463,7 +465,7 @@ func InvalidChainIdTx(config *Config, value *big.Int) error {
 func LackOfFundsTx(config *Config, value *big.Int) error {
 	fmt.Printf("LackOfFundsTx\n")
 
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 
 	sender := crypto.PubkeyToAddress(config.keys[10].PublicKey)
 	fmt.Printf("Airdrop faucet is at %x\n", sender)
@@ -497,7 +499,7 @@ func LackOfFundsTx(config *Config, value *big.Int) error {
 
 func BlobTx(config *Config, value *big.Int) error {
 	fmt.Printf("BlobTx\n")
-	backend := ethclient.NewClient(config.backend)
+	backend := ethclient.NewClient(config.l2Backend)
 	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
 	fmt.Printf("Sender is at %x\n", sender)
 	chainID, err := backend.ChainID(context.Background())
@@ -524,7 +526,7 @@ func BlobTx(config *Config, value *big.Int) error {
 
 		to := crypto.PubkeyToAddress(addr.PublicKey)
 		gp, _ := backend.SuggestGasPrice(context.Background())
-		tip, feecap, err := txfuzz.GetCaps(config.backend, gp)
+		tip, feecap, err := txfuzz.GetCaps(config.l2Backend, gp)
 		if err != nil {
 			return err
 		}
@@ -547,5 +549,36 @@ func BlobTx(config *Config, value *big.Int) error {
 	}
 
 	fmt.Printf("Sent blob txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
+func DepositValidTx(config *Config) error {
+	fmt.Printf("DepositValidTx\n")
+	l1Backend := ethclient.NewClient(config.l1Backend)
+	l2Backend := ethclient.NewClient(config.l2Backend)
+
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Sender is at %x\n", sender)
+	chainID, err := l1Backend.ChainID(context.Background())
+	if err != nil {
+		log.Warn("Could not get chainID, using default")
+		chainID = big.NewInt(0x01000666)
+	}
+
+	opts, err := bind.NewKeyedTransactorWithChainID(config.faucet, chainID)
+	if err != nil {
+		return err
+	}
+
+	// from https://github.com/Firewall-eng/sequencer/blob/b80059bdbf3aee38db7532f98eb4ca15db63dfcb/devnet/config/addresses.json#L22
+	optimismPortalAddr := common.HexToAddress("0x6509f2a854BA7441039fCE3b959d5bAdd2fFCFCD")
+
+	// send deposit tx
+	toAddr := common.Address{0xff, 0xff} // first 2 bytes of the address are 0xff and 0xff, others 0x00
+	SendDepositTx(optimismPortalAddr, l1Backend, l2Backend, opts, func(opts *op_e2e.DepositTxOpts) {
+		opts.ToAddr = toAddr
+		opts.Value = big.NewInt(100000000000000) // 0.0001 ETH
+	})
+
 	return nil
 }

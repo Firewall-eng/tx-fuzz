@@ -8,6 +8,11 @@ import (
 	"math/big"
 	"time"
 
+	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
+	"github.com/ethereum-optimism/optimism/op-e2e/bindings"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/transactions"
+	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
+	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -76,7 +81,7 @@ func Unstuck(config *Config) error {
 
 func tryUnstuck(config *Config, sk *ecdsa.PrivateKey) error {
 	var (
-		client = ethclient.NewClient(config.backend)
+		client = ethclient.NewClient(config.l2Backend)
 		addr   = crypto.PubkeyToAddress(sk.PublicKey)
 	)
 	for i := 0; i < 100; i++ {
@@ -108,7 +113,7 @@ func tryUnstuck(config *Config, sk *ecdsa.PrivateKey) error {
 }
 
 func isStuck(config *Config, account common.Address) (uint64, error) {
-	client := ethclient.NewClient(config.backend)
+	client := ethclient.NewClient(config.l2Backend)
 	nonce, err := client.NonceAt(context.Background(), account, nil)
 	if err != nil {
 		return 0, err
@@ -124,4 +129,58 @@ func isStuck(config *Config, account common.Address) (uint64, error) {
 		return pendingNonce - nonce, nil
 	}
 	return 0, nil
+}
+
+// SendDepositTx creates and sends a deposit transaction.
+// The L1 transaction, including sender, is configured by the l1Opts param.
+// The L2 transaction options can be configured by modifying the DepositTxOps value supplied to applyL2Opts
+// Will verify that the transaction is included with the expected status on L1 and L2
+// Returns the receipt of the L2 transaction
+func SendDepositTx(optimismPortalAddr common.Address, l1Client *ethclient.Client, l2Client *ethclient.Client, l1Opts *bind.TransactOpts, applyL2Opts op_e2e.DepositTxOptsFn) (*types.Receipt, error) {
+	l2Opts := defaultDepositTxOpts(l1Opts)
+	applyL2Opts(l2Opts)
+
+	// Find deposit contract
+	depositContract, err := bindings.NewOptimismPortal(optimismPortalAddr, l1Client)
+	if err != nil {
+		return nil, err
+	}
+	// Finally send TX
+	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
+	// for buying L2 gas in the portal contracts.
+	tx, err := transactions.PadGasEstimate(l1Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
+		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, l2Opts.Value, l2Opts.GasLimit, l2Opts.IsCreation, l2Opts.Data)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Wait for transaction on L1
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	l1Receipt, err := wait.ForReceiptOK(ctx, l1Client, tx.Hash())
+	if err != nil {
+		return nil, err
+	}
+
+	// Wait for transaction to be included on L2
+	reconstructedDep, err := derive.UnmarshalDepositLogEvent(l1Receipt.Logs[0])
+	tx = types.NewTx(reconstructedDep)
+	l2Receipt, err := wait.ForReceipt(ctx, l2Client, tx.Hash(), l2Opts.ExpectedStatus)
+	if err != nil {
+		return nil, err
+	}
+	
+	return l2Receipt, nil
+}
+
+func defaultDepositTxOpts(opts *bind.TransactOpts) *op_e2e.DepositTxOpts {
+	return &op_e2e.DepositTxOpts{
+		ToAddr:         opts.From,
+		Value:          opts.Value,
+		GasLimit:       1_000_000,
+		IsCreation:     false,
+		Data:           nil,
+		ExpectedStatus: types.ReceiptStatusSuccessful,
+	}
 }

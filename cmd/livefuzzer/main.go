@@ -67,6 +67,13 @@ var unstuckCommand = &cli.Command{
 	Flags:  flags.SpamFlags,
 }
 
+var depositValidTxCommand = &cli.Command{
+	Name:   "depositValidTx",
+	Usage:  "Send a valid deposit transaction",
+	Action: runDepositValidTx,
+	Flags:  flags.SpamFlags,
+}
+
 func initApp() *cli.App {
 	app := cli.NewApp()
 	app.Name = "tx-fuzz"
@@ -173,6 +180,16 @@ func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
 	return nil
 }
 
+func depositValidTx(config *spammer.Config) error {
+	fmt.Printf("depositValidTx\n")
+	if err := spammer.DepositValidTx(config); err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return err
+	}
+	time.Sleep(time.Duration(config.SlotTime) * time.Second)
+	return nil
+}
+
 func singleBlob(config *spammer.Config, airdropValue *big.Int) error {
 	fmt.Printf("singleBlob\n")
 	if err := spammer.BlobTx(config, airdropValue); err != nil {
@@ -233,4 +250,12 @@ func runUnstuck(c *cli.Context) error {
 		return err
 	}
 	return spammer.Unstuck(config)
+}
+
+func runDepositValidTx(c *cli.Context) error {
+	config, err := spammer.NewConfigFromContext(c)
+	if err != nil {
+		return err
+	}
+	return depositValidTx(config)
 }

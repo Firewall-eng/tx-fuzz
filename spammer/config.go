@@ -20,7 +20,8 @@ import (
 )
 
 type Config struct {
-	backend *rpc.Client // connection to the rpc provider
+	l1Backend *rpc.Client // connection to the l1 rpc provider
+	l2Backend  *rpc.Client // connection to the rpc provider
 
 	N          uint64              // number of transactions send per account
 	faucet     *ecdsa.PrivateKey   // private key of the faucet account
@@ -56,7 +57,7 @@ func NewDefaultConfig(rpcAddr string, N uint64, accessList bool, rng *rand.Rand)
 	}
 
 	return &Config{
-		backend:    backend,
+		l2Backend:  backend,
 		N:          N,
 		faucet:     crypto.ToECDSAUnsafe(common.FromHex(txfuzz.SK)),
 		keys:       keys,
@@ -70,8 +71,14 @@ func NewDefaultConfig(rpcAddr string, N uint64, accessList bool, rng *rand.Rand)
 
 func NewConfigFromContext(c *cli.Context) (*Config, error) {
 	// Setup RPC
-	rpcAddr := c.String(flags.RpcFlag.Name)
-	backend, err := rpc.Dial(rpcAddr)
+	l1RpcAddr := c.String(flags.L1RpcFlag.Name)
+	l1Backend, err := rpc.Dial(l1RpcAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	l2RpcAddr := c.String(flags.RpcFlag.Name)
+	l2Backend, err := rpc.Dial(l2RpcAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +109,7 @@ func NewConfigFromContext(c *cli.Context) (*Config, error) {
 	// Setup N
 	N := c.Int(flags.TxCountFlag.Name)
 	if N == 0 {
-		N, err = setupN(backend, len(keys), gasLimit)
+		N, err = setupN(l2Backend, len(keys), gasLimit)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +139,8 @@ func NewConfigFromContext(c *cli.Context) (*Config, error) {
 	}
 
 	return &Config{
-		backend:    backend,
+		l1Backend:  l1Backend,
+		l2Backend:  l2Backend,
 		N:          uint64(N),
 		faucet:     faucet,
 		accessList: !c.Bool(flags.NoALFlag.Name),

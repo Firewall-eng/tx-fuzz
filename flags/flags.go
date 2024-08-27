@@ -35,7 +35,13 @@ var (
 	RpcFlag = &cli.StringFlag{
 		Name:  "rpc",
 		Usage: "RPC provider",
-		Value: "http://127.0.0.1:8544", // sequencer rpc
+		Value: "http://127.0.0.1:8544", // reth sequencer rpc
+	}
+
+	L1RpcFlag = &cli.StringFlag{
+		Name:  "l1-rpc",
+		Usage: "L1 RPC provider",
+		Value: "http://127.0.0.1:8545", // geth l1 rpc
 	}
 
 	TxCountFlag = &cli.IntFlag{
