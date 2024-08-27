@@ -23,7 +23,6 @@ func main() {
 	fmt.Println("5656")
 	test5656()
 	fmt.Println("4844_prec")
-	test4844_precompile()
 	fmt.Println("4844")
 	test4844()
 }
@@ -194,40 +193,40 @@ func test4844() {
 	helper.Wait(tx)
 }
 
-func test4844_precompile() {
-	addr, err := deployBlobCaller()
-	if err != nil {
-		panic(err)
-	}
+// func test4844_precompile() {
+// 	addr, err := deployBlobCaller()
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	// Test precompile without blobs
-	staticTestInput := common.FromHex("01d18459b334ffe8e2226eef1db874fda6db2bdd9357268b39220af2d59464fb564c0a11a0f704f4fc3e8acfe0f8245f0ad1347b378fbf96e206da11a5d3630624d25032e67a7e6a4910df5834b8fe70e6bcfeeac0352434196bdf4b2485d5a1978a0d595c823c05947b1156175e72634a377808384256e9921ebf72181890be2d6b58d4a73a880541d1656875654806942307f266e636553e94006d11423f2688945ff3bdf515859eba1005c1a7708d620a94d91a1c0c285f9584e75ec2f82a")
-	helper.Exec(addr, staticTestInput, false)
+// 	// Test precompile without blobs
+// 	staticTestInput := common.FromHex("01d18459b334ffe8e2226eef1db874fda6db2bdd9357268b39220af2d59464fb564c0a11a0f704f4fc3e8acfe0f8245f0ad1347b378fbf96e206da11a5d3630624d25032e67a7e6a4910df5834b8fe70e6bcfeeac0352434196bdf4b2485d5a1978a0d595c823c05947b1156175e72634a377808384256e9921ebf72181890be2d6b58d4a73a880541d1656875654806942307f266e636553e94006d11423f2688945ff3bdf515859eba1005c1a7708d620a94d91a1c0c285f9584e75ec2f82a")
+// 	helper.Exec(addr, staticTestInput, false)
 
-	invalidInput := make([]byte, len(staticTestInput))
-	helper.Exec(addr, invalidInput, false)
+// 	invalidInput := make([]byte, len(staticTestInput))
+// 	helper.Exec(addr, invalidInput, false)
 
-	co, cl, pr, po, err := createPrecompileRandParams()
-	if err != nil {
-		panic(err)
-	}
-	validRandomInput := precompileParamsToBytes(co, cl, pr, po)
-	tx := helper.Exec(addr, validRandomInput, false)
+// 	co, cl, pr, po, err := createPrecompileRandParams()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	validRandomInput := precompileParamsToBytes(co, cl, pr, po)
+// 	tx := helper.Exec(addr, validRandomInput, false)
 
-	helper.Wait(tx)
+// 	helper.Wait(tx)
 
-	// Test precompile with blobs
-	helper.Exec(addr, staticTestInput, true)
-	helper.Exec(addr, invalidInput, true)
-	tx = helper.Exec(addr, validRandomInput, true)
+// 	// Test precompile with blobs
+// 	helper.Exec(addr, staticTestInput, true)
+// 	helper.Exec(addr, invalidInput, true)
+// 	tx = helper.Exec(addr, validRandomInput, true)
 
-	helper.Wait(tx)
+// 	helper.Wait(tx)
 
-	// Full block of verification
-	for i := 0; i < 30_000_000/100_000; i++ {
-		helper.Exec(addr, validRandomInput, false)
-	}
-}
+// 	// Full block of verification
+// 	for i := 0; i < 30_000_000/100_000; i++ {
+// 		helper.Exec(addr, validRandomInput, false)
+// 	}
+// }
 
 func precompileParamsToBytes(commitment *kzg4844.Commitment, claim *kzg4844.Claim, proof *kzg4844.Proof, point *kzg4844.Point) []byte {
 	bytes := make([]byte, 192)
@@ -240,23 +239,23 @@ func precompileParamsToBytes(commitment *kzg4844.Commitment, claim *kzg4844.Clai
 	return bytes
 }
 
-func createPrecompileRandParams() (*kzg4844.Commitment, *kzg4844.Claim, *kzg4844.Proof, *kzg4844.Point, error) {
-	random := make([]byte, 131072)
-	rand.Read(random[:])
-	blob := encodeBlobs(random)[0]
-	commitment, err := kzg4844.BlobToCommitment(&blob)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	var point kzg4844.Point
-	rand.Read(point[:])
-	point[0] = 0 // point needs to be < modulus
-	proof, claim, err := kzg4844.ComputeProof(&blob, point)
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-	return &commitment, &claim, &proof, &point, nil
-}
+// func createPrecompileRandParams() (*kzg4844.Commitment, *kzg4844.Claim, *kzg4844.Proof, *kzg4844.Point, error) {
+// 	random := make([]byte, 131072)
+// 	rand.Read(random[:])
+// 	blob := encodeBlobs(random)[0]
+// 	commitment, err := kzg4844.BlobToCommitment(&blob)
+// 	if err != nil {
+// 		return nil, nil, nil, nil, err
+// 	}
+// 	var point kzg4844.Point
+// 	rand.Read(point[:])
+// 	point[0] = 0 // point needs to be < modulus
+// 	proof, claim, err := kzg4844.ComputeProof(&blob, point)
+// 	if err != nil {
+// 		return nil, nil, nil, nil, err
+// 	}
+// 	return &commitment, &claim, &proof, &point, nil
+// }
 
 func encodeBlobs(data []byte) []kzg4844.Blob {
 	blobs := []kzg4844.Blob{{}}

@@ -10,7 +10,6 @@ import (
 	txfuzz "github.com/MariusVanDerWijden/tx-fuzz"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -21,59 +20,59 @@ const (
 	maxDataPerBlob = 1 << 17 // 128Kb
 )
 
-func Exec(addr common.Address, data []byte, blobs bool) *types.Transaction {
-	cl, sk := GetRealBackend()
-	backend := ethclient.NewClient(cl)
-	sender := common.HexToAddress(txfuzz.ADDR)
-	nonce, err := backend.PendingNonceAt(context.Background(), sender)
-	if err != nil {
-		panic(err)
-	}
-	chainid, err := backend.ChainID(context.Background())
-	if err != nil {
-		panic(err)
-	}
-	fmt.Printf("Nonce: %v\n", nonce)
-	gp, err := backend.SuggestGasPrice(context.Background())
-	if err != nil {
-		panic(err)
-	}
-	tip, err := backend.SuggestGasTipCap(context.Background())
-	if err != nil {
-		tip = big.NewInt(100000000)
-		//panic(err)
-	}
-	var rlpData []byte
-	var _tx *types.Transaction
-	gasLimit := uint64(30_000_000)
-	if blobs {
-		blob, err := RandomBlobData()
-		if err != nil {
-			panic(err)
-		}
-		//nonce = nonce - 2
-		tx := txfuzz.New4844Tx(nonce, &addr, gasLimit, chainid, tip.Mul(tip, common.Big1), gp.Mul(gp, common.Big1), common.Big0, data, big.NewInt(1_000_000), blob, make(types.AccessList, 0))
-		signedTx, _ := types.SignTx(tx, types.NewCancunSigner(chainid), sk)
-		rlpData, err = signedTx.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-		_tx = signedTx
-	} else {
-		tx := types.NewTx(&types.DynamicFeeTx{ChainID: chainid, Nonce: nonce, GasTipCap: tip, GasFeeCap: gp, Gas: gasLimit, To: &addr, Data: data})
-		signedTx, _ := types.SignTx(tx, types.NewCancunSigner(chainid), sk)
-		rlpData, err = signedTx.MarshalBinary()
-		if err != nil {
-			panic(err)
-		}
-		_tx = signedTx
-	}
+// func Exec(addr common.Address, data []byte, blobs bool) *types.Transaction {
+// 	cl, sk := GetRealBackend()
+// 	backend := ethclient.NewClient(cl)
+// 	sender := common.HexToAddress(txfuzz.ADDR)
+// 	nonce, err := backend.PendingNonceAt(context.Background(), sender)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	chainid, err := backend.ChainID(context.Background())
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	fmt.Printf("Nonce: %v\n", nonce)
+// 	gp, err := backend.SuggestGasPrice(context.Background())
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	tip, err := backend.SuggestGasTipCap(context.Background())
+// 	if err != nil {
+// 		tip = big.NewInt(100000000)
+// 		//panic(err)
+// 	}
+// 	var rlpData []byte
+// 	var _tx *types.Transaction
+// 	gasLimit := uint64(30_000_000)
+// 	if blobs {
+// 		blob, err := RandomBlobData()
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		//nonce = nonce - 2
+// 		tx := txfuzz.New4844Tx(nonce, &addr, gasLimit, chainid, tip.Mul(tip, common.Big1), gp.Mul(gp, common.Big1), common.Big0, data, big.NewInt(1_000_000), blob, make(types.AccessList, 0))
+// 		signedTx, _ := types.SignTx(tx, types.NewCancunSigner(chainid), sk)
+// 		rlpData, err = signedTx.MarshalBinary()
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		_tx = signedTx
+// 	} else {
+// 		tx := types.NewTx(&types.DynamicFeeTx{ChainID: chainid, Nonce: nonce, GasTipCap: tip, GasFeeCap: gp, Gas: gasLimit, To: &addr, Data: data})
+// 		signedTx, _ := types.SignTx(tx, types.NewCancunSigner(chainid), sk)
+// 		rlpData, err = signedTx.MarshalBinary()
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		_tx = signedTx
+// 	}
 
-	if err := cl.CallContext(context.Background(), nil, "eth_sendRawTransaction", hexutil.Encode(rlpData)); err != nil {
-		panic(err)
-	}
-	return _tx
-}
+// 	if err := cl.CallContext(context.Background(), nil, "eth_sendRawTransaction", hexutil.Encode(rlpData)); err != nil {
+// 		panic(err)
+// 	}
+// 	return _tx
+// }
 
 func GetRealBackend() (*rpc.Client, *ecdsa.PrivateKey) {
 	// eth.sendTransaction({from:personal.listAccounts[0], to:"0xb02A2EdA1b317FBd16760128836B0Ac59B560e9D", value: "100000000000000"})

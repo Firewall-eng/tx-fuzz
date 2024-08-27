@@ -18,7 +18,6 @@ import (
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/holiman/uint256"
 )
 
 // RandomCode creates a random byte code from the passed filler.
@@ -130,14 +129,14 @@ func InvalidNonceTx(rpc *rpc.Client, f *filler.Filler, sender common.Address, _n
 	}
 }
 
-func RandomBlobTx(rpc *rpc.Client, f *filler.Filler, sender common.Address, nonce uint64, gasPrice, chainID *big.Int, al bool) (*types.Transaction, error) {
-	conf := initDefaultTxConf(rpc, f, sender, nonce, gasPrice, chainID)
-	if al {
-		return fullAlBlobTx(conf)
-	} else {
-		return emptyAlBlobTx(conf)
-	}
-}
+// func RandomBlobTx(rpc *rpc.Client, f *filler.Filler, sender common.Address, nonce uint64, gasPrice, chainID *big.Int, al bool) (*types.Transaction, error) {
+// 	conf := initDefaultTxConf(rpc, f, sender, nonce, gasPrice, chainID)
+// 	if al {
+// 		return fullAlBlobTx(conf)
+// 	} else {
+// 		return emptyAlBlobTx(conf)
+// 	}
+// }
 
 type txCreationStrategy func(conf *txConf) (*types.Transaction, error)
 
@@ -243,36 +242,36 @@ func fullAl1559Tx(conf *txConf) (*types.Transaction, error) {
 	return new1559Tx(conf.nonce, conf.to, conf.gasLimit, conf.chainID, tip, feecap, conf.value, conf.code, *al), nil
 }
 
-func emptyAlBlobTx(conf *txConf) (*types.Transaction, error) {
-	// 4844 transaction without AL
-	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
-	if err != nil {
-		return nil, err
-	}
-	data, err := RandomBlobData()
-	if err != nil {
-		return nil, err
-	}
-	return New4844Tx(conf.nonce, conf.to, conf.gasLimit, conf.chainID, tip, feecap, conf.value, conf.code, big.NewInt(1000000), data, make(types.AccessList, 0)), nil
-}
+// func emptyAlBlobTx(conf *txConf) (*types.Transaction, error) {
+// 	// 4844 transaction without AL
+// 	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	data, err := RandomBlobData()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return New4844Tx(conf.nonce, conf.to, conf.gasLimit, conf.chainID, tip, feecap, conf.value, conf.code, big.NewInt(1000000), data, make(types.AccessList, 0)), nil
+// }
 
-func fullAlBlobTx(conf *txConf) (*types.Transaction, error) {
-	// 4844 transaction with AL
-	tx := types.NewTransaction(conf.nonce, *conf.to, conf.value, conf.gasLimit, conf.gasPrice, conf.code)
-	al, err := CreateAccessList(conf.rpc, tx, conf.sender)
-	if err != nil {
-		return nil, err
-	}
-	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
-	if err != nil {
-		return nil, err
-	}
-	data, err := RandomBlobData()
-	if err != nil {
-		return nil, err
-	}
-	return New4844Tx(conf.nonce, conf.to, conf.gasLimit, conf.chainID, tip, feecap, conf.value, conf.code, big.NewInt(1000000), data, *al), nil
-}
+// func fullAlBlobTx(conf *txConf) (*types.Transaction, error) {
+// 	// 4844 transaction with AL
+// 	tx := types.NewTransaction(conf.nonce, *conf.to, conf.value, conf.gasLimit, conf.gasPrice, conf.code)
+// 	al, err := CreateAccessList(conf.rpc, tx, conf.sender)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	tip, feecap, err := GetCaps(conf.rpc, conf.gasPrice)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	data, err := RandomBlobData()
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return New4844Tx(conf.nonce, conf.to, conf.gasLimit, conf.chainID, tip, feecap, conf.value, conf.code, big.NewInt(1000000), data, *al), nil
+// }
 
 func newALTx(nonce uint64, to *common.Address, gasLimit uint64, chainID, gasPrice, value *big.Int, code []byte, al types.AccessList) *types.Transaction {
 	return types.NewTx(&types.AccessListTx{
@@ -301,26 +300,26 @@ func new1559Tx(nonce uint64, to *common.Address, gasLimit uint64, chainID, tip, 
 	})
 }
 
-func New4844Tx(nonce uint64, to *common.Address, gasLimit uint64, chainID, tip, feeCap, value *big.Int, code []byte, blobFeeCap *big.Int, blobData []byte, al types.AccessList) *types.Transaction {
-	blobs, commits, aggProof, versionedHashes, err := EncodeBlobs(blobData)
-	if err != nil {
-		panic(err)
-	}
-	return types.NewTx(&types.BlobTx{
-		ChainID:    uint256.MustFromBig(chainID),
-		Nonce:      nonce,
-		GasTipCap:  uint256.MustFromBig(tip),
-		GasFeeCap:  uint256.MustFromBig(feeCap),
-		Gas:        gasLimit,
-		To:         *to,
-		Value:      uint256.MustFromBig(value),
-		Data:       code,
-		AccessList: al,
-		BlobFeeCap: uint256.MustFromBig(blobFeeCap),
-		BlobHashes: versionedHashes,
-		Sidecar:    &types.BlobTxSidecar{Blobs: blobs, Commitments: commits, Proofs: aggProof},
-	})
-}
+// func New4844Tx(nonce uint64, to *common.Address, gasLimit uint64, chainID, tip, feeCap, value *big.Int, code []byte, blobFeeCap *big.Int, blobData []byte, al types.AccessList) *types.Transaction {
+// 	blobs, commits, aggProof, versionedHashes, err := EncodeBlobs(blobData)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	return types.NewTx(&types.BlobTx{
+// 		ChainID:    uint256.MustFromBig(chainID),
+// 		Nonce:      nonce,
+// 		GasTipCap:  uint256.MustFromBig(tip),
+// 		GasFeeCap:  uint256.MustFromBig(feeCap),
+// 		Gas:        gasLimit,
+// 		To:         *to,
+// 		Value:      uint256.MustFromBig(value),
+// 		Data:       code,
+// 		AccessList: al,
+// 		BlobFeeCap: uint256.MustFromBig(blobFeeCap),
+// 		BlobHashes: versionedHashes,
+// 		Sidecar:    &types.BlobTxSidecar{Blobs: blobs, Commitments: commits, Proofs: aggProof},
+// 	})
+// }
 
 func GetCaps(rpc *rpc.Client, defaultGasPrice *big.Int) (*big.Int, *big.Int, error) {
 	if rpc == nil {
@@ -360,30 +359,30 @@ func encodeBlobs(data []byte) []kzg4844.Blob {
 	return blobs
 }
 
-func EncodeBlobs(data []byte) ([]kzg4844.Blob, []kzg4844.Commitment, []kzg4844.Proof, []common.Hash, error) {
-	var (
-		blobs           = encodeBlobs(data)
-		commits         []kzg4844.Commitment
-		proofs          []kzg4844.Proof
-		versionedHashes []common.Hash
-	)
-	for _, blob := range blobs {
-		commit, err := kzg4844.BlobToCommitment(&blob)
-		if err != nil {
-			return nil, nil, nil, nil, err
-		}
-		commits = append(commits, commit)
+// func EncodeBlobs(data []byte) ([]kzg4844.Blob, []kzg4844.Commitment, []kzg4844.Proof, []common.Hash, error) {
+// 	var (
+// 		blobs           = encodeBlobs(data)
+// 		commits         []kzg4844.Commitment
+// 		proofs          []kzg4844.Proof
+// 		versionedHashes []common.Hash
+// 	)
+// 	for _, blob := range blobs {
+// 		commit, err := kzg4844.BlobToCommitment(&blob)
+// 		if err != nil {
+// 			return nil, nil, nil, nil, err
+// 		}
+// 		commits = append(commits, commit)
 
-		proof, err := kzg4844.ComputeBlobProof(&blob, commit)
-		if err != nil {
-			return nil, nil, nil, nil, err
-		}
-		proofs = append(proofs, proof)
+// 		proof, err := kzg4844.ComputeBlobProof(&blob, commit)
+// 		if err != nil {
+// 			return nil, nil, nil, nil, err
+// 		}
+// 		proofs = append(proofs, proof)
 
-		versionedHashes = append(versionedHashes, kZGToVersionedHash(commit))
-	}
-	return blobs, commits, proofs, versionedHashes, nil
-}
+// 		versionedHashes = append(versionedHashes, kZGToVersionedHash(commit))
+// 	}
+// 	return blobs, commits, proofs, versionedHashes, nil
+// }
 
 var blobCommitmentVersionKZG uint8 = 0x01
 
