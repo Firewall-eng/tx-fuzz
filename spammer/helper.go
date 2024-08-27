@@ -10,7 +10,6 @@ import (
 
 	op_e2e "github.com/ethereum-optimism/optimism/op-e2e"
 	"github.com/ethereum-optimism/optimism/op-e2e/bindings"
-	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/transactions"
 	"github.com/ethereum-optimism/optimism/op-e2e/e2eutils/wait"
 	"github.com/ethereum-optimism/optimism/op-node/rollup/derive"
 	"github.com/ethereum/go-ethereum"
@@ -137,6 +136,7 @@ func isStuck(config *Config, account common.Address) (uint64, error) {
 // Will verify that the transaction is included with the expected status on L1 and L2
 // Returns the receipt of the L2 transaction
 func SendDepositTx(optimismPortalAddr common.Address, l1Client *ethclient.Client, l2Client *ethclient.Client, l1Opts *bind.TransactOpts, applyL2Opts op_e2e.DepositTxOptsFn) (*types.Receipt, error) {
+	fmt.Printf("Sending deposit transaction\n")
 	l2Opts := defaultDepositTxOpts(l1Opts)
 	applyL2Opts(l2Opts)
 
@@ -148,10 +148,19 @@ func SendDepositTx(optimismPortalAddr common.Address, l1Client *ethclient.Client
 	// Finally send TX
 	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
 	// for buying L2 gas in the portal contracts.
-	tx, err := transactions.PadGasEstimate(l1Opts, 1.1, func(opts *bind.TransactOpts) (*types.Transaction, error) {
-		return depositContract.DepositTransaction(opts, l2Opts.ToAddr, l2Opts.Value, l2Opts.GasLimit, l2Opts.IsCreation, l2Opts.Data)
-	})
+	gasLimit := uint64(10000000)
+
+	tx, err := depositContract.DepositTransaction(l1Opts, l2Opts.ToAddr, l2Opts.Value, gasLimit, l2Opts.IsCreation, l2Opts.Data)
+
+	if err == nil {
+		fmt.Printf("Transaction created successfully:\n")
+		fmt.Printf("  Hash: %s\n", tx.Hash().Hex())
+		fmt.Printf("  Nonce: %d\n", tx.Nonce())
+		fmt.Printf("  Gas Price: %s\n", tx.GasPrice().String())
+		fmt.Printf("  Gas: %d\n", tx.Gas())
+	}
 	if err != nil {
+		fmt.Printf("Error sending transaction: %v\n", err)
 		return nil, err
 	}
 
@@ -159,6 +168,7 @@ func SendDepositTx(optimismPortalAddr common.Address, l1Client *ethclient.Client
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	l1Receipt, err := wait.ForReceiptOK(ctx, l1Client, tx.Hash())
+	fmt.Printf("L1 receipt: %v\n", l1Receipt)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +180,7 @@ func SendDepositTx(optimismPortalAddr common.Address, l1Client *ethclient.Client
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return l2Receipt, nil
 }
 

@@ -21,7 +21,7 @@ import (
 
 type Config struct {
 	l1Backend *rpc.Client // connection to the l1 rpc provider
-	l2Backend  *rpc.Client // connection to the rpc provider
+	l2Backend *rpc.Client // connection to the rpc provider
 
 	N          uint64              // number of transactions send per account
 	faucet     *ecdsa.PrivateKey   // private key of the faucet account
@@ -72,6 +72,10 @@ func NewDefaultConfig(rpcAddr string, N uint64, accessList bool, rng *rand.Rand)
 func NewConfigFromContext(c *cli.Context) (*Config, error) {
 	// Setup RPC
 	l1RpcAddr := c.String(flags.L1RpcFlag.Name)
+	if l1RpcAddr == "" {
+		return nil, fmt.Errorf("L1 RPC address is required")
+	}
+	fmt.Printf("Using L1 RPC address: %s\n", l1RpcAddr)
 	l1Backend, err := rpc.Dial(l1RpcAddr)
 	if err != nil {
 		return nil, err

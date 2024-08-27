@@ -103,6 +103,7 @@ var (
 		NoALFlag,
 		CorpusFlag,
 		RpcFlag,
+		L1RpcFlag,
 		TxCountFlag,
 		CountFlag,
 		GasLimitFlag,

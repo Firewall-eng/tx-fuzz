@@ -86,6 +86,7 @@ func initApp() *cli.App {
 		unstuckCommand,
 		singleSpamCommand,
 		// singleBlobSpamCommand,
+		depositValidTxCommand,
 	}
 	return app
 }

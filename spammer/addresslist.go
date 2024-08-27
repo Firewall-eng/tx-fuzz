@@ -569,14 +569,24 @@ func DepositValidTx(config *Config) error {
 	}
 
 	// from https://github.com/Firewall-eng/sequencer/blob/b80059bdbf3aee38db7532f98eb4ca15db63dfcb/devnet/config/addresses.json#L22
-	optimismPortalAddr := common.HexToAddress("0x6509f2a854BA7441039fCE3b959d5bAdd2fFCFCD")
+	optimismPortalAddrProxy := common.HexToAddress("0x6509f2a854BA7441039fCE3b959d5bAdd2fFCFCD")
+	// optimismPortalAddr := common.HexToAddress("0x74bD19b0993fe0ab50b3E9cC1dAb859305d5836d")
 
-	// send deposit tx
+	// Use a fixed address for all transactions
 	toAddr := common.Address{0xff, 0xff} // first 2 bytes of the address are 0xff and 0xff, others 0x00
-	SendDepositTx(optimismPortalAddr, l1Backend, l2Backend, opts, func(opts *op_e2e.DepositTxOpts) {
-		opts.ToAddr = toAddr
-		opts.Value = big.NewInt(100000000000000) // 0.0001 ETH
-	})
 
+	for i := 0; i < 100; i++ {
+		fmt.Printf("Sending deposit transaction %d/100\n", i+1)
+
+		SendDepositTx(optimismPortalAddrProxy, l1Backend, l2Backend, opts, func(opts *op_e2e.DepositTxOpts) {
+			opts.ToAddr = toAddr
+			opts.Value = big.NewInt(100000000000000) // 0.0001 ETH
+			opts.GasLimit = 100000000
+		})
+
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	fmt.Printf("Sent 100 deposit transactions\n")
 	return nil
 }
