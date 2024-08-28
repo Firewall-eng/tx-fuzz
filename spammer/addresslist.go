@@ -579,7 +579,7 @@ func DepositValidTx(config *Config) error {
 	SendDepositTx(optimismPortalAddrProxy, l1Backend, l2Backend, opts, func(opts *op_e2e.DepositTxOpts) {
 		opts.ToAddr = toAddr
 		opts.Value = big.NewInt(100000000000000) // 0.0001 ETH
-		opts.GasLimit = 100000000
+		opts.GasLimit = 1500000
 	})
 
 	time.Sleep(10 * time.Millisecond)

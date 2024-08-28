@@ -148,7 +148,7 @@ func SendDepositTx(optimismPortalAddr common.Address, l1Client *ethclient.Client
 	// Finally send TX
 	// Add 10% padding for the L1 gas limit because the estimation process can be affected by the 1559 style cost scale
 	// for buying L2 gas in the portal contracts.
-	gasLimit := uint64(10000000)
+	gasLimit := uint64(1500000)
 
 	tx, err := depositContract.DepositTransaction(l1Opts, l2Opts.ToAddr, l2Opts.Value, gasLimit, l2Opts.IsCreation, l2Opts.Data)
 
