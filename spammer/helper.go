@@ -175,6 +175,9 @@ func SendDepositTx(optimismPortalAddr common.Address, l1Client *ethclient.Client
 
 	// Wait for transaction to be included on L2
 	reconstructedDep, err := derive.UnmarshalDepositLogEvent(l1Receipt.Logs[0])
+	if err != nil {
+		return nil, err
+	}
 	tx = types.NewTx(reconstructedDep)
 	l2Receipt, err := wait.ForReceipt(ctx, l2Client, tx.Hash(), l2Opts.ExpectedStatus)
 	if err != nil {

@@ -575,18 +575,15 @@ func DepositValidTx(config *Config) error {
 	// Use a fixed address for all transactions
 	toAddr := common.Address{0xff, 0xff} // first 2 bytes of the address are 0xff and 0xff, others 0x00
 
-	for i := 0; i < 100; i++ {
-		fmt.Printf("Sending deposit transaction %d/100\n", i+1)
+	fmt.Printf("Sending deposit transaction")
+	SendDepositTx(optimismPortalAddrProxy, l1Backend, l2Backend, opts, func(opts *op_e2e.DepositTxOpts) {
+		opts.ToAddr = toAddr
+		opts.Value = big.NewInt(100000000000000) // 0.0001 ETH
+		opts.GasLimit = 100000000
+	})
 
-		SendDepositTx(optimismPortalAddrProxy, l1Backend, l2Backend, opts, func(opts *op_e2e.DepositTxOpts) {
-			opts.ToAddr = toAddr
-			opts.Value = big.NewInt(100000000000000) // 0.0001 ETH
-			opts.GasLimit = 100000000
-		})
+	time.Sleep(10 * time.Millisecond)
 
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	fmt.Printf("Sent 100 deposit transactions\n")
+	fmt.Printf("Sent 1 deposit transactions\n")
 	return nil
 }
