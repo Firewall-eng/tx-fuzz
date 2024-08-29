@@ -9,6 +9,7 @@ import (
 	"github.com/MariusVanDerWijden/FuzzyVM/filler"
 	txfuzz "github.com/MariusVanDerWijden/tx-fuzz"
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/math"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -495,6 +496,13 @@ func LackOfFundsTx(config *Config, value *big.Int) error {
 	return nil
 }
 
+func FillerFromConfig(config *Config) *filler.Filler {
+	random := make([]byte, 10000)
+	config.mut.FillBytes(&random)
+	config.mut.MutateBytes(&random)
+	return filler.NewFiller(random)
+}
+
 func BlobTx(config *Config, value *big.Int) error {
 	fmt.Printf("BlobTx\n")
 	backend := ethclient.NewClient(config.backend)
@@ -547,5 +555,50 @@ func BlobTx(config *Config, value *big.Int) error {
 	}
 
 	fmt.Printf("Sent blob txs to %d accounts\n", len(config.keys))
+	return nil
+}
+
+func ValidTx(config *Config, value *big.Int, f *filler.Filler) error {
+	fmt.Printf("ValidTxs\n")
+
+	backend := ethclient.NewClient(config.backend)
+
+	sender := crypto.PubkeyToAddress(config.faucet.PublicKey)
+	fmt.Printf("Airdrop faucet is at %x\n", sender)
+	chainid, err := backend.ChainID(context.Background())
+	if err != nil {
+		fmt.Printf("error getting chain ID; could not airdrop: %v\n", err)
+		return err
+	}
+	var lastTx *types.Transaction
+	for i, addr := range config.keys {
+		fmt.Printf("Sending transaction %d/%d\n", i+1, len(config.keys))
+		nonce, err := backend.PendingNonceAt(context.Background(), sender)
+		if err != nil {
+			fmt.Printf("error getting pending nonce; could not airdrop: %v\n", err)
+			return err
+		}
+		to := crypto.PubkeyToAddress(addr.PublicKey)
+		gp, _ := backend.SuggestGasPrice(context.Background())
+		fixedGasLimit := uint64(21000)
+		fmt.Printf("Sending tx with gas: %d\n", fixedGasLimit)
+		tx2 := types.NewTransaction(nonce, to, value, fixedGasLimit, gp, nil)
+
+		signedTx, _ := types.SignTx(tx2, types.LatestSignerForChainID(chainid), config.faucet)
+		if err := backend.SendTransaction(context.Background(), signedTx); err != nil {
+			fmt.Printf("tx was not validated: %v\n", err)
+		}
+		lastTx = signedTx
+		time.Sleep(10 * time.Millisecond)
+	}
+	if lastTx != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), TX_TIMEOUT)
+		defer cancel()
+		if _, err := bind.WaitMined(ctx, backend, lastTx); err != nil {
+			fmt.Printf("Waiting for transactions to be mined failed: %v\n", err.Error())
+		}
+		fmt.Printf("Correctly spammed valid tx\n")
+	}
+	fmt.Printf("Sent 100 txs to %d accounts\n", len(config.keys))
 	return nil
 }

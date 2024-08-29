@@ -33,7 +33,7 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 			return err
 		}
 		fmt.Print("Sending tx from ", sender, "\n")
-		tx, err := txfuzz.RandomValidTx(config.backend, f, sender, nonce, nil, nil, config.accessList)
+		tx, err := txfuzz.RandomValidTx(config.backend, f, sender, nonce, big.NewInt(1000000), nil, config.accessList)
 		if err != nil {
 			fmt.Printf("Could not create valid tx\n")
 			return err
@@ -55,6 +55,7 @@ func SendBasicTransactions(config *Config, key *ecdsa.PrivateKey, f *filler.Fill
 		if _, err := bind.WaitMined(ctx, backend, lastTx); err != nil {
 			fmt.Printf("Waiting for transactions to be mined failed: %v\n", err.Error())
 		}
+		fmt.Printf("Correctly spammed valid txs\n")
 	}
 	return nil
 }

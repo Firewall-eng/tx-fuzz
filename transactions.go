@@ -3,14 +3,12 @@ package txfuzz
 import (
 	"context"
 	"crypto/sha256"
-	"fmt"
 	"math"
 	"math/big"
 	"math/rand"
 
 	"github.com/MariusVanDerWijden/FuzzyVM/filler"
 	"github.com/MariusVanDerWijden/FuzzyVM/generator"
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto/kzg4844"
@@ -49,24 +47,15 @@ type txConf struct {
 
 func initDefaultTxConf(rpc *rpc.Client, f *filler.Filler, sender common.Address, nonce uint64, gasPrice, chainID *big.Int) *txConf {
 	// defaults
-	gasCost := uint64(100000)
 	to := randomAddress()
-	code := RandomCode(f)
+	code := []byte{} // Always set code to empty bytes
 	value := big.NewInt(0)
-	if len(code) > 128 {
-		code = code[:128]
-	}
+
 	// Set fields if non-nil
 	if rpc != nil {
 		client := ethclient.NewClient(rpc)
 		var err error
-		if gasPrice == nil {
-			gasPrice, err = client.SuggestGasPrice(context.Background())
-			if err != nil {
-				fmt.Printf("Error suggesting gas price: %v", err)
-				gasPrice = big.NewInt(1)
-			}
-		}
+
 		if chainID == nil {
 			chainID, err = client.ChainID(context.Background())
 			if err != nil {
@@ -75,18 +64,6 @@ func initDefaultTxConf(rpc *rpc.Client, f *filler.Filler, sender common.Address,
 			}
 		}
 		// Try to estimate gas
-		gas, err := client.EstimateGas(context.Background(), ethereum.CallMsg{
-			From:     sender,
-			To:       &to,
-			Gas:      math.MaxUint64,
-			GasPrice: gasPrice,
-			Value:    value,
-			Data:     code,
-		})
-		if err == nil {
-			log.Warn("Error estimating gas: %v", err)
-			gasCost = gas
-		}
 	}
 
 	return &txConf{
@@ -95,7 +72,7 @@ func initDefaultTxConf(rpc *rpc.Client, f *filler.Filler, sender common.Address,
 		sender:   sender,
 		to:       &to,
 		value:    value,
-		gasLimit: gasCost,
+		gasLimit: 1000000,
 		gasPrice: gasPrice,
 		chainID:  chainID,
 		code:     code,

@@ -90,6 +90,10 @@ var (
 		Name:  "lack-of-funds",
 		Usage: "Send transactions from a sender without funds",
 	}
+	ValidTxsFlag = &cli.BoolFlag{
+		Name:  "valid-txs",
+		Usage: "Send random valid transactions from a sender",
+	}
 
 	SpamFlags = []cli.Flag{
 		SkFlag,
@@ -109,5 +113,6 @@ var (
 		InvalidSignatureFlag,
 		InvalidChainIdFlag,
 		LackOfFundsFlag,
+		ValidTxsFlag,
 	}
 )

@@ -40,6 +40,7 @@ type Config struct {
 	InvalidNegativeValue bool
 	InvalidGas           bool
 	LackOfFundsTx        bool
+	ValidTxs             bool
 }
 
 func NewDefaultConfig(rpcAddr string, N uint64, accessList bool, rng *rand.Rand) (*Config, error) {
@@ -150,6 +151,7 @@ func NewConfigFromContext(c *cli.Context) (*Config, error) {
 		InvalidNegativeValue: c.Bool(flags.InvalidNegativeValueFlag.Name),
 		InvalidGas:           c.Bool(flags.InvalidGasFlag.Name),
 		LackOfFundsTx:        c.Bool(flags.LackOfFundsFlag.Name),
+		ValidTxs:             c.Bool(flags.ValidTxsFlag.Name),
 	}, nil
 }
 

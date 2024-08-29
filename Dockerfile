@@ -16,4 +16,6 @@ FROM alpine:latest
 
 COPY --from=builder /build/cmd/livefuzzer/tx-fuzz.bin /tx-fuzz.bin
 
-ENTRYPOINT ["/tx-fuzz.bin"]
+ENTRYPOINT ["tail", "-f", "/dev/null"]
+
+
