@@ -169,6 +169,14 @@ func singleSpam(config *spammer.Config, airdropValue *big.Int) error {
 		}
 	}
 
+	if config.ValidTxs {
+		f := spammer.FillerFromConfig(config)
+		if err := spammer.ValidTx(config, airdropValue, f); err != nil {
+			fmt.Printf("Error sending valid transactions: %v\n", err)
+			return err
+		}
+	}
+
 	time.Sleep(time.Duration(config.SlotTime) * time.Second)
 	return nil
 }
